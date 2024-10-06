@@ -128,13 +128,13 @@ class WPCA(BaseEstimator, TransformerMixin):
             Ws = weights.sum(0)
             covar *= np.outer(Ws, Ws) ** self.xi
 
-        eigvals = (X.shape[1] - n_components, X.shape[1] - 1)
-        evals, evecs = linalg.eigh(covar, eigvals=eigvals)
+        subset_by_index = (X.shape[1] - n_components, X.shape[1] - 1)
+        evals, evecs = linalg.eigh(covar, subset_by_index=subset_by_index)
         self.components_ = evecs[:, ::-1].T
         self.explained_variance_ = evals[::-1]
         self.explained_variance_ratio_ = evals[::-1] / covar.trace()
 
-        self.n_iter_ = 1 # needed by sklearn.utils.estimator_checks
+        self.n_iter_ = 1  # needed by sklearn.utils.estimator_checks
 
     def transform(self, X, weights=None):
         """Apply dimensionality reduction on X.
