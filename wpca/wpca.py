@@ -81,8 +81,7 @@ class WPCA(BaseEstimator, TransformerMixin):
         if weights is not None:
             # Convert from inverse variance to inverse sigmas.
             # See eqn. 7 of Delchambre 2015 and issue #2.
-            weights = np.sqrt(weights)
-            np.where(np.isnan(weights), 0, weights)
+            weights = np.sqrt(weights.clip(min=0))
             X *= weights
         else:
             weights = np.ones_like(X)
