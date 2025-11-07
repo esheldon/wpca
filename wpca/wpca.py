@@ -60,6 +60,39 @@ class WPCA(BaseEstimator, TransformerMixin):
         self.regularization = regularization
         self.copy_data = copy_data
 
+    def save(self, fname):
+        import fitsio
+
+        hdr = {
+            'n_components': self.n_components,
+            'xi': self.xi,
+            'copy_data': self.copy_data,
+            'n_iter': self.n_iter_,
+        }
+        dtype = [
+            ('mean', 'f8', self.mean_.shape),
+            ('explained_variance_', 'f8', self.explained_variance_.shape),
+            ('explained_variance_ratio_', 'f8', self.explained_variance_ratio_.shape),
+            ('components', 'f8', self.components_.shape[1:]),
+        ]
+        try:
+            len(self.regularization)
+            dtype += [
+                ('regularization', self.regularization.shape),
+            ]
+            reg_is_array = True
+        except TypeError:
+            hdr['regularization'] = self.regularization
+            reg_is_array = False
+
+        with fitsio.FITS(fname, 'rw', clobber=True) as fits:
+            fits.write(self.mean_, extname='mean', hdr=hdr)
+            fits.write(self.explained_variance_, extname='explained_variance', hdr=hdr)
+            fits.write(self.explained_variance_ratio_, extname='explained_variance_ratio', hdr=hdr)
+            fits.write(self.components_, extname='components', hdr=hdr)
+            if reg_is_array:
+                fits.write(self.regularization, extname='regularization', hdr=hdr)
+
     def _center_and_weight(self, X, weights, fit_mean=False, keepnone=False):
         """Compute centered and weighted version of X and adjust weights.
 
@@ -167,9 +200,9 @@ class WPCA(BaseEstimator, TransformerMixin):
 		tdot1: 1.2636184692382812e-05
 		tdot2: 0.00012993812561035156
 		tsolve: 2.4557113647460938e-05
-
 		tsub: 0.00016736984252929688
 		tot: 0.00016808509826660156
+
         """
         # import time
 
