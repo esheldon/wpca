@@ -97,7 +97,7 @@ class WPCA(BaseEstimator, TransformerMixin):
         import fitsio
 
         with fitsio.FITS(fname) as fits:
-            hdr = self['mean'].read_header()
+            hdr = fits['mean'].read_header()
 
             self.mean_ = fits['mean'].read()
             self.explained_variance_ = fits['explained_variance'].read()
