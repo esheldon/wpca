@@ -114,6 +114,12 @@ class WPCA(BaseEstimator, TransformerMixin):
         self.copy_data = hdr['copy_data']
         self.n_iter = hdr['n_iter']
 
+    @classmethod
+    def fromfile(cls, fname):
+        pca = WPCA()
+        pca.load(fname)
+        return pca
+
     def _center_and_weight(self, X, weights, fit_mean=False, keepnone=False):
         """Compute centered and weighted version of X and adjust weights.
 
