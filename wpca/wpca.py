@@ -71,8 +71,8 @@ class WPCA(BaseEstimator, TransformerMixin):
         }
         dtype = [
             ('mean', 'f8', self.mean_.shape),
-            ('explained_variance_', 'f8', self.explained_variance_.shape),
-            ('explained_variance_ratio_', 'f8', self.explained_variance_ratio_.shape),
+            ('explained_variance', 'f8', self.explained_variance_.shape),
+            ('explained_variance_ratio', 'f8', self.explained_variance_ratio_.shape),
             ('components', 'f8', self.components_.shape[1:]),
         ]
         try:
@@ -92,6 +92,27 @@ class WPCA(BaseEstimator, TransformerMixin):
             fits.write(self.components_, extname='components', hdr=hdr)
             if reg_is_array:
                 fits.write(self.regularization, extname='regularization', hdr=hdr)
+
+    def load(self, fname):
+        import fitsio
+
+        with fitsio.FITS(fname) as fits:
+            hdr = self['mean'].read_header()
+
+            self.mean_ = fits['mean'].read()
+            self.explained_variance_ = fits['explained_variance'].read()
+            self.explained_variance_ratio_ = fits['explained_variance_ratio'].read()
+            self.components_ = fits['components'].read()
+
+            if 'regularization' in fits:
+                self.regularization = fits['regularization'].read()
+            else:
+                self.regularization = hdr['regularization']
+
+        self.n_components = self.components_.shape[0]
+        self.xi = hdr['xi']
+        self.copy_data = hdr['copy_data']
+        self.n_iter = hdr['n_iter']
 
     def _center_and_weight(self, X, weights, fit_mean=False, keepnone=False):
         """Compute centered and weighted version of X and adjust weights.
