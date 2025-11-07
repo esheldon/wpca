@@ -60,7 +60,7 @@ class WPCA(BaseEstimator, TransformerMixin):
         self.regularization = regularization
         self.copy_data = copy_data
 
-    def _center_and_weight(self, X, weights, fit_mean=False):
+    def _center_and_weight(self, X, weights, fit_mean=False, keepnone=False):
         """Compute centered and weighted version of X and adjust weights.
 
         Input weights are inverse variance and adjusted weights are
@@ -84,7 +84,8 @@ class WPCA(BaseEstimator, TransformerMixin):
             weights = np.sqrt(weights.clip(min=0))
             X *= weights
         else:
-            weights = np.ones_like(X)
+            if not keepnone:
+                weights = np.ones_like(X)
 
         return X, weights
 
@@ -156,20 +157,60 @@ class WPCA(BaseEstimator, TransformerMixin):
         -------
         X_new : array-like, shape (n_samples, n_components)
         """
-        X, weights = self._center_and_weight(X, weights, fit_mean=False)
+        X, weights = self._center_and_weight(X, weights, fit_mean=False, keepnone=True)
         return self._transform_precentered(X, weights)
 
     def _transform_precentered(self, X, weights):
-        """transform pre-centered data"""
+        """
+        transform pre-centered data
+
+		tdot1: 1.2636184692382812e-05
+		tdot2: 0.00012993812561035156
+		tsolve: 2.4557113647460938e-05
+
+		tsub: 0.00016736984252929688
+		tot: 0.00016808509826660156
+        """
+        # import time
+
         # TODO: parallelize this?
         Y = np.zeros((X.shape[0], self.components_.shape[0]))
+        # ttot = 0.0
+        # tdot1 = 0.0
+        # tdot2 = 0.0
+        # tmult = 0.0
+        # tsolve = 0.0
+
+        if weights is None:
+            cW = self.components_
+        # ttot_tm0 = time.time()
         for i in range(X.shape[0]):
-            cW = self.components_ * weights[i]
+            # tm0 = time.time()
+            if weights is not None:
+                cW = self.components_ * weights[i]
+            # tmult += time.time() - tm0
+
+            # tm0 = time.time()
             cWX = np.dot(cW, X[i])
+            # tdot1 += time.time() - tm0
+            # tm0 = time.time()
             cWc = np.dot(cW, cW.T)
+            # import IPython; IPython.embed()
+            # tdot2 += time.time() - tm0
+
             if self.regularization is not None:
                 cWc += np.diag(self.regularization / self.explained_variance_)
+            # tm0 = time.time()
             Y[i] = np.linalg.solve(cWc, cWX)
+            # tsolve += time.time() - tm0
+        # ttot = time.time() - ttot_tm0
+        # print('----------')
+        # print('tmult:', tmult)
+        # print('tdot1:', tdot1)
+        # print('tdot2:', tdot2)
+        # print('tsolve:', tsolve)
+        # print('tsub:', tmult+tdot1+tdot2+tsolve)
+        # print('tot:', ttot)
         return Y
 
     def fit_transform(self, X, y=None, weights=None):
