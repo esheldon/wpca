@@ -69,12 +69,14 @@ class WPCA(BaseEstimator, TransformerMixin):
             'copy_data': self.copy_data,
             'n_iter': self.n_iter_,
         }
+
         dtype = [
             ('mean', 'f8', self.mean_.shape),
             ('explained_variance', 'f8', self.explained_variance_.shape),
             ('explained_variance_ratio', 'f8', self.explained_variance_ratio_.shape),
             ('components', 'f8', self.components_.shape[1:]),
         ]
+
         try:
             len(self.regularization)
             dtype += [
@@ -82,16 +84,17 @@ class WPCA(BaseEstimator, TransformerMixin):
             ]
             reg_is_array = True
         except TypeError:
-            hdr['regularization'] = self.regularization
+            if self.regularization is not None:
+                hdr['regularization'] = self.regularization
             reg_is_array = False
 
         with fitsio.FITS(fname, 'rw', clobber=True) as fits:
-            fits.write(self.mean_, extname='mean', hdr=hdr)
-            fits.write(self.explained_variance_, extname='explained_variance', hdr=hdr)
-            fits.write(self.explained_variance_ratio_, extname='explained_variance_ratio', hdr=hdr)
-            fits.write(self.components_, extname='components', hdr=hdr)
+            fits.write(self.mean_, extname='mean', header=hdr)
+            fits.write(self.explained_variance_, extname='explained_variance', header=hdr)
+            fits.write(self.explained_variance_ratio_, extname='explained_variance_ratio', header=hdr)
+            fits.write(self.components_, extname='components', header=hdr)
             if reg_is_array:
-                fits.write(self.regularization, extname='regularization', hdr=hdr)
+                fits.write(self.regularization, extname='regularization', header=hdr)
 
     def load(self, fname):
         import fitsio
@@ -107,7 +110,7 @@ class WPCA(BaseEstimator, TransformerMixin):
             if 'regularization' in fits:
                 self.regularization = fits['regularization'].read()
             else:
-                self.regularization = hdr['regularization']
+                self.regularization = hdr.get('regularization')
 
         self.n_components = self.components_.shape[0]
         self.xi = hdr['xi']
