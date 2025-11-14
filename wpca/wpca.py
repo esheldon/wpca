@@ -53,69 +53,77 @@ class WPCA(BaseEstimator, TransformerMixin):
     .. [1] Delchambre, L. MNRAS 2014 446 (2): 3545-3555 (2014)
            http://arxiv.org/abs/1412.4533
     """
-    def __init__(self, n_components=None, xi=0, regularization=None,
-                 copy_data=True):
+
+    def __init__(self, n_components=None, xi=0, regularization=None, copy_data=True):
         self.n_components = n_components
         self.xi = xi
         self.regularization = regularization
         self.copy_data = copy_data
 
-    def save(self, fname):
+    def save(self, fname, meta=None):
         import fitsio
 
-        hdr = {
-            'n_components': self.n_components,
-            'xi': self.xi,
-            'copy_data': self.copy_data,
-            'n_iter': self.n_iter_,
-        }
+        header = {}
+        if meta is not None:
+            header.update(meta)
+
+        header["n_components"] = self.n_components
+        header["xi"] = self.xi
+        header["copy_data"] = self.copy_data
+        header["n_iter"] = self.n_iter_
 
         dtype = [
-            ('mean', 'f8', self.mean_.shape),
-            ('explained_variance', 'f8', self.explained_variance_.shape),
-            ('explained_variance_ratio', 'f8', self.explained_variance_ratio_.shape),
-            ('components', 'f8', self.components_.shape[1:]),
+            ("mean", "f8", self.mean_.shape),
+            ("explained_variance", "f8", self.explained_variance_.shape),
+            ("explained_variance_ratio", "f8", self.explained_variance_ratio_.shape),
+            ("components", "f8", self.components_.shape[1:]),
         ]
 
         try:
             len(self.regularization)
             dtype += [
-                ('regularization', self.regularization.shape),
+                ("regularization", self.regularization.shape),
             ]
             reg_is_array = True
         except TypeError:
             if self.regularization is not None:
-                hdr['regularization'] = self.regularization
+                header["regularization"] = self.regularization
             reg_is_array = False
 
-        with fitsio.FITS(fname, 'rw', clobber=True) as fits:
-            fits.write(self.mean_, extname='mean', header=hdr)
-            fits.write(self.explained_variance_, extname='explained_variance', header=hdr)
-            fits.write(self.explained_variance_ratio_, extname='explained_variance_ratio', header=hdr)
-            fits.write(self.components_, extname='components', header=hdr)
+        with fitsio.FITS(fname, "rw", clobber=True) as fits:
+            fits.write(self.mean_, extname="mean", header=header)
+            fits.write(
+                self.explained_variance_, extname="explained_variance", header=header
+            )
+            fits.write(
+                self.explained_variance_ratio_,
+                extname="explained_variance_ratio",
+                header=header,
+            )
+            fits.write(self.components_, extname="components", header=header)
             if reg_is_array:
-                fits.write(self.regularization, extname='regularization', header=hdr)
+                fits.write(self.regularization, extname="regularization", header=header)
 
     def load(self, fname):
         import fitsio
 
         with fitsio.FITS(fname) as fits:
-            hdr = fits['mean'].read_header()
+            header = fits["mean"].read_header()
 
-            self.mean_ = fits['mean'].read()
-            self.explained_variance_ = fits['explained_variance'].read()
-            self.explained_variance_ratio_ = fits['explained_variance_ratio'].read()
-            self.components_ = fits['components'].read()
+            self.mean_ = fits["mean"].read()
+            self.explained_variance_ = fits["explained_variance"].read()
+            self.explained_variance_ratio_ = fits["explained_variance_ratio"].read()
+            self.components_ = fits["components"].read()
 
-            if 'regularization' in fits:
-                self.regularization = fits['regularization'].read()
+            if "regularization" in fits:
+                self.regularization = fits["regularization"].read()
             else:
-                self.regularization = hdr.get('regularization')
+                self.regularization = header.get("regularization")
 
         self.n_components = self.components_.shape[0]
-        self.xi = hdr['xi']
-        self.copy_data = hdr['copy_data']
-        self.n_iter = hdr['n_iter']
+        self.xi = header["xi"]
+        self.copy_data = header["copy_data"]
+        self.n_iter = header["n_iter"]
 
     @classmethod
     def fromfile(cls, fname):
@@ -132,8 +140,9 @@ class WPCA(BaseEstimator, TransformerMixin):
 
         If fit_mean is True, then also save the mean to self.mean_
         """
-        X, weights = check_array_with_weights(X, weights, dtype=float,
-                                              copy=self.copy_data)
+        X, weights = check_array_with_weights(
+            X, weights, dtype=float, copy=self.copy_data
+        )
 
         if fit_mean:
             self.mean_ = weighted_mean(X, weights, axis=0)
@@ -227,11 +236,11 @@ class WPCA(BaseEstimator, TransformerMixin):
         """
         transform pre-centered data
 
-		tdot1: 1.2636184692382812e-05
-		tdot2: 0.00012993812561035156
-		tsolve: 2.4557113647460938e-05
-		tsub: 0.00016736984252929688
-		tot: 0.00016808509826660156
+                tdot1: 1.2636184692382812e-05
+                tdot2: 0.00012993812561035156
+                tsolve: 2.4557113647460938e-05
+                tsub: 0.00016736984252929688
+                tot: 0.00016808509826660156
 
         """
         # import time
