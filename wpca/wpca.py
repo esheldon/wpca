@@ -248,7 +248,8 @@ class WPCA(BaseEstimator, TransformerMixin):
         """
         if progress:
             from tqdm import trange
-            miter = trange
+            from functools import partial
+            miter = partial(trange, ascii=True, ncols=70)
         else:
             miter = range
 
