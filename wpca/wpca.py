@@ -209,7 +209,7 @@ class WPCA(BaseEstimator, TransformerMixin):
 
         self.n_iter_ = 1  # needed by sklearn.utils.estimator_checks
 
-    def transform(self, X, weights=None):
+    def transform(self, X, weights=None, progress=False):
         """Apply dimensionality reduction on X.
 
         X is projected on the first principal components previous extracted
@@ -225,14 +225,17 @@ class WPCA(BaseEstimator, TransformerMixin):
             Non-negative weights encoding the reliability of each measurement.
             Equivalent to the inverse variance when errors are Gaussian.
 
+        progress: bool, optional
+            If set to True, show a progress bar
+
         Returns
         -------
         X_new : array-like, shape (n_samples, n_components)
         """
         X, weights = self._center_and_weight(X, weights, fit_mean=False, keepnone=True)
-        return self._transform_precentered(X, weights)
+        return self._transform_precentered(X, weights, progress=progress)
 
-    def _transform_precentered(self, X, weights):
+    def _transform_precentered(self, X, weights, progress=False):
         """
         transform pre-centered data
 
@@ -243,6 +246,12 @@ class WPCA(BaseEstimator, TransformerMixin):
                 tot: 0.00016808509826660156
 
         """
+        if progress:
+            from tqdm import trange
+            miter = trange
+        else:
+            miter = range
+
         # import time
 
         # TODO: parallelize this?
@@ -256,7 +265,7 @@ class WPCA(BaseEstimator, TransformerMixin):
         if weights is None:
             cW = self.components_
         # ttot_tm0 = time.time()
-        for i in range(X.shape[0]):
+        for i in miter(X.shape[0]):
             # tm0 = time.time()
             if weights is not None:
                 cW = self.components_ * weights[i]
