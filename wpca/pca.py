@@ -152,3 +152,40 @@ class PCA(BaseEstimator, TransformerMixin):
             Reconstructed version of X
         """
         return self.inverse_transform(self.fit_transform(X))
+
+
+    def save(self, fname, meta=None):
+        import fitsio
+
+        with fitsio.FITS(fname, "rw", clobber=True) as fits:
+            fits.write(
+                self.mean_,
+                extname="mean",
+                header=meta,
+            )
+            fits.write(
+                self.explained_variance_,
+                extname="explained_variance",
+                header=meta,
+            )
+            fits.write(
+                self.explained_variance_ratio_,
+                extname="explained_variance_ratio",
+                header=meta,
+            )
+            fits.write(
+                self.components_,
+                extname="components",
+                header=meta,
+            )
+
+    def load(self, fname):
+        import fitsio
+
+        with fitsio.FITS(fname) as fits:
+            self.mean_ = fits["mean"].read()
+            self.explained_variance_ = fits["explained_variance"].read()
+            self.explained_variance_ratio_ = fits["explained_variance_ratio"].read()
+            self.components_ = fits["components"].read()
+
+        self.n_components = self.components_.shape[0]

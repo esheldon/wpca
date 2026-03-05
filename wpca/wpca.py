@@ -72,18 +72,8 @@ class WPCA(BaseEstimator, TransformerMixin):
         header["copy_data"] = self.copy_data
         header["n_iter"] = self.n_iter_
 
-        dtype = [
-            ("mean", "f8", self.mean_.shape),
-            ("explained_variance", "f8", self.explained_variance_.shape),
-            ("explained_variance_ratio", "f8", self.explained_variance_ratio_.shape),
-            ("components", "f8", self.components_.shape[1:]),
-        ]
-
         try:
             len(self.regularization)
-            dtype += [
-                ("regularization", self.regularization.shape),
-            ]
             reg_is_array = True
         except TypeError:
             if self.regularization is not None:
@@ -91,18 +81,32 @@ class WPCA(BaseEstimator, TransformerMixin):
             reg_is_array = False
 
         with fitsio.FITS(fname, "rw", clobber=True) as fits:
-            fits.write(self.mean_, extname="mean", header=header)
             fits.write(
-                self.explained_variance_, extname="explained_variance", header=header
+                self.mean_,
+                extname="mean",
+                header=header,
+            )
+            fits.write(
+                self.explained_variance_,
+                extname="explained_variance",
+                header=header
             )
             fits.write(
                 self.explained_variance_ratio_,
                 extname="explained_variance_ratio",
                 header=header,
             )
-            fits.write(self.components_, extname="components", header=header)
+            fits.write(
+                self.components_,
+                extname="components",
+                header=header,
+            )
             if reg_is_array:
-                fits.write(self.regularization, extname="regularization", header=header)
+                fits.write(
+                    self.regularization,
+                    extname="regularization",
+                    header=header,
+                )
 
     def load(self, fname):
         import fitsio
@@ -123,7 +127,7 @@ class WPCA(BaseEstimator, TransformerMixin):
         self.n_components = self.components_.shape[0]
         self.xi = header["xi"]
         self.copy_data = header["copy_data"]
-        self.n_iter = header["n_iter"]
+        self.n_iter_ = header["n_iter"]
 
     @classmethod
     def fromfile(cls, fname):
